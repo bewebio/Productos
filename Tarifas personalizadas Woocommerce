@@ -1,0 +1,188 @@
+<?php
+/*
+Plugin Name:  Tarifas
+Plugin URI: 
+Description: Tarifas de los productos simples y variables
+Author: Oriol Matamoros
+Version: 1.0
+Author URI:
+*/
+
+//Simple Product Hooks
+// Display Fields
+add_action( 'woocommerce_product_options_general_product_data', 'bpt_custom_general_fields' );
+
+// Save Fields
+add_action( 'woocommerce_process_product_meta', 'bpt_save_custom_general_fields' );
+
+//Variable Product Hooks
+//Display Fields (both actions below should work)
+add_action( 'woocommerce_product_after_variable_attributes', 'bpt_custom_variable_fields', 10, 3 );
+//add_action( 'woocommerce_variation_options', 'bpt_custom_variable_fields', 10, 3 );
+
+//Save variation fields
+//add_action( 'woocommerce_process_product_meta_variable', 'bpt_save_custom_variable_fields', 10, 1 );
+//As of WooCommerce 2.4.4:
+//woocommerce_process_product_meta_variable no longer works, and it must be changed to woocommerce_save_product_variation
+add_action( 'woocommerce_save_product_variation', 'bpt_save_custom_variable_fields_id', 10, 1 ); 
+
+function bpt_custom_general_fields()
+{	
+	global $woocommerce, $post;
+	
+	echo '<div id="bpt_attr" class="options_group show_if_simple show_if_external"><h2>Tarifas de los producto</h2>';
+
+    //>>TARIFAS
+	//CANON RAEE
+	woocommerce_wp_text_input( 
+		array(	
+			'id'          => '_bpt_canon_raee', 
+			'label'       => __( 'Canon RAEE', 'woocommerce' ), 
+			'desc_tip'    => 'true',
+			'description' => __( 'Introduzca canon RAEE', 'woocommerce' ),
+			'default_value' => 'ND',
+		)
+    );
+    
+	//Precio recomendado
+	woocommerce_wp_text_input( 
+		array(	
+			'id'          => '_bpt_trec', 
+			'label'       => __( 'Precio recomendado', 'woocommerce' ), 
+			'desc_tip'    => 'true',
+			'description' => __( 'Introduzca el precio recomendado', 'woocommerce' ),
+			'default_value' => 'ND',
+		)
+	);     
+
+	//Tarifa profesional
+	woocommerce_wp_text_input( 
+		array(	
+			'id'          => '_bpt_tpro', 
+			'label'       => __( 'Tarifa profesional', 'woocommerce' ), 
+			'desc_tip'    => 'true',
+			'description' => __( 'Introduzca la tarifa profesional', 'woocommerce' ),
+			'default_value' => 'ND',
+		)
+    );
+
+	echo '</div>';
+	
+	
+
+}	
+
+/**
+ * Save new fields for simple products
+ *
+*/
+function bpt_save_custom_general_fields($post_id){	
+    $woocommerce_almp = $_POST['_bpt_canon_raee'];
+    $woocommerce_almt = $_POST['_bpt_trec'];
+    $woocommerce_almt = $_POST['_bpt_tpro'];
+
+	if(isset($woocommerce_canon_raee))
+		update_post_meta( $post_id, '_bpt_canon_raee', esc_attr($woocommerce_canon_raee));
+	
+	if(isset($woocommerce_trec))
+        update_post_meta( $post_id, '_bpt_tpro', esc_attr($woocommerce_trec));
+        
+    if(isset($woocommerce_tpro))
+	update_post_meta( $post_id, '_bpt_tpro', esc_attr($woocommerce_tpro));        
+}
+/**
+ * CREAR CAMPOS PARA VARIABLES
+ *
+*/
+function bpt_custom_variable_fields( $loop, $variation_id, $variation ) {
+	
+	echo '<div id="bpt_attr" class="options_group show_if_variable"><br><hr width=100%><p style="font-weight:bold">Tarifas de los producto</p>';
+	
+		// Variation canon RAEE
+		woocommerce_wp_text_input( 
+			array( 
+				'id'          => '_bpt_variable_canon_raee['.$loop.']', 
+				'label'       => __( 'Canon RAEE', 'woocommerce' ),
+				'placeholder' => 'Introduzca el canon RAEE',	
+				'value'       => get_post_meta($variation->ID, '_bpt_canon_raee', true),
+				'wrapper_class' => 'form-row-last',
+			)
+        );
+
+        // Variation precio recomendado
+		woocommerce_wp_text_input( 
+			array( 
+				'id'          => '_bpt_variable_trec['.$loop.']', 
+				'label'       => __( 'Precio recomendado', 'woocommerce' ),
+				'placeholder' => 'Introduzca el precio recomendado',	
+				'value'       => get_post_meta($variation->ID, '_bpt_trec', true),
+				'wrapper_class' => 'form-row-last',
+			)
+        );        
+
+        // Variation tarifa profesional
+		woocommerce_wp_text_input( 
+			array( 
+				'id'          => '_bpt_variable_tpro['.$loop.']', 
+				'label'       => __( 'Tarifa profesional', 'woocommerce' ),
+				'placeholder' => 'Introduzca la tarifa profesional',	
+				'value'       => get_post_meta($variation->ID, '_bpt_tpro', true),
+				'wrapper_class' => 'form-row-last',
+			)
+        );
+
+		echo '</div>';
+
+}
+
+/**
+ * GUARDAR CAMPOS DE VARIABLES
+ *
+*/
+function bpt_save_custom_variable_fields( $post_id ) {
+	
+	if (isset( $_POST['variable_sku'] ) ) {
+
+		$variable_sku          = $_POST['variable_sku'];
+		$variable_post_id      = $_POST['variable_post_id'];
+		
+		$max_loop = max( array_keys( $_POST['variable_post_id'] ) );
+
+		for ( $i = 0; $i <= $max_loop; $i++ ) {
+
+	        if ( ! isset( $variable_post_id[ $i ] ) ) {
+	          continue;
+            }
+            
+		//TARIFAS >>>>>>>>>>>>>>>>>>>>>>>	
+			
+		// Canon RAEE
+		$_canon_raee = $_POST['_bpt_variable_canon_raee'];		
+			$variation_id = (int) $variable_post_id[$i];
+			if ( isset( $woocommerce_canon_raee[$i] ) ) {
+                update_post_meta( $variation_id, '_bpt_canon_raee', stripslashes( $_mpn[$i]));
+            }
+        //endfor;
+
+        // Precio recomendado
+		$_trec = $_POST['_bpt_variable_trec'];		
+        $variation_id = (int) $variable_post_id[$i];
+        if ( isset( $woocommerce_trec[$i] ) ) {
+            update_post_meta( $variation_id, '_bpt_trec', stripslashes( $_mpn[$i]));
+        }
+        //endfor;        
+        
+        // Tarifa profesional
+		$_tpro = $_POST['_bpt_variable_tpro'];		
+        $variation_id = (int) $variable_post_id[$i];
+        if ( isset( $_tpro[$i] ) ) {
+            update_post_meta( $variation_id, '_bpt_tpro', stripslashes( $_mpn[$i]));
+        }
+        //endfor;
+		
+		}
+		
+	}
+
+}
+
